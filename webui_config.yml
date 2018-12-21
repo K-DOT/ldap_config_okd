@@ -1,0 +1,56 @@
+- name: Install phpldapadmin and mod_ssl
+  package:
+    name: '{{ packages }}'
+    state: latest
+  vars:
+    packages:
+      - phpldapadmin
+      - mod_ssl
+- name: Create private key file
+  file:
+    path: /etc/ssl/private
+    state: directory
+- name: Create private key
+  openssl_privatekey:
+    path: /etc/ssl/private/phpldapadmin.key
+- name: Create CSR
+  openssl_csr:
+    path:  /etc/ssl/certs/phpldapadmin.csr
+    privatekey_path: /etc/ssl/private/phpldapadmin.key
+    subject_alt_name: '{{ ldaps_subject_alt_name }}'
+    subject: '{{ ldaps_subject }}'
+    force: True
+- name: Generate a Self Signed certificate
+  openssl_certificate:
+    path:  /etc/ssl/certs/phpldapadmin.crt
+    privatekey_path: /etc/ssl/private/phpldapadmin.key
+    csr_path: /etc/ssl/certs/phpldapadmin.csr
+    provider: selfsigned
+    force: True
+- name: Change permisions of certificates
+  file:
+    path: /etc/ssl/certs
+    state: directory
+    owner: apache
+    group: apache
+    recurse: yes
+- name: Configure login with DN
+  lineinfile:
+    path: /etc/phpldapadmin/config.php
+    regexp: "\\$servers->setValue\\('login','attr','uid'\\);"
+    line: "$servers->setValue('login','attr','dn');"
+    state: present
+- name: Set default user
+  lineinfile:
+    path: /etc/phpldapadmin/config.php
+    regexp: "\\/\\/ \\$servers->setValue\\('login','bind_id'.+;"
+    line: "$servers->setValue('login','bind_id','{{ admin_CN }},{{ DN }}');"
+    state: present
+- name: Create Apache VirtualHost config
+  template:
+    src: templates/phpldapadmin.conf.j2
+    dest: /etc/httpd/conf.d/phpldapadmin.conf
+  notify:
+     - restart apache
+- debug:
+    msg: "[WARNING] Apache VirtualHost config created during installation allows all hosts. It's recomended to change it manually."

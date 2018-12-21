@@ -1,0 +1,10 @@
+---
+# handlers file for ldap_config_okd
+- name: restart slapd
+  systemd:
+    name: slapd
+    state: restarted
+- name: restart apache
+  service:
+    name: httpd
+    state: restarted

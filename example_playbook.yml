@@ -1,0 +1,6 @@
+---
+- hosts: ldap-server
+  tasks:
+    - name: Configure LDAP server for OKD
+      include_role:
+        name: '../ldap_config_okd'

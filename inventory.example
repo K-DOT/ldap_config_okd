@@ -1,0 +1,2 @@
+[ldap-server]
+54.84.12.180 ansible_ssh_user=centos ansible_become=true

@@ -1,0 +1,53 @@
+- name: Create private key
+  openssl_privatekey:
+    path: /etc/openldap/certs/ldap.key
+- name: Create CSR
+  openssl_csr:
+    path: /etc/openldap/certs/ldap.csr
+    privatekey_path: /etc/openldap/certs/ldap.key
+    subject_alt_name: '{{ ldaps_subject_alt_name }}'
+    subject: '{{ ldaps_subject }}'
+    force: True
+- name: Generate a Self Signed certificate
+  openssl_certificate:
+    path: /etc/openldap/certs/ldap.crt
+    privatekey_path: /etc/openldap/certs/ldap.key
+    csr_path: /etc/openldap/certs/ldap.csr
+    provider: selfsigned
+    force: True
+- name: Change permisions of certificates
+  file:
+    path: /etc/openldap/certs
+    owner: ldap
+    group: ldap
+    state: directory
+    recurse: yes
+- name: Update LDAP configuration
+  ldap_attr:
+    dn: cn=config
+    name: '{{ item.name_ }}'
+    values: '{{ item.values_ }}'
+    state: exact
+  loop:
+    - name_: olcTLSCertificateKeyFile
+      values_: /etc/openldap/certs/ldap.key
+    - name_: olcTLSCertificateFile
+      values_: /etc/openldap/certs/ldap.crt  
+- name: Update listen ports
+  lineinfile:
+    path: /etc/sysconfig/slapd
+    regexp: 'SLAPD_URLS=.+'
+    line: 'SLAPD_URLS="ldapi:/// ldap:/// ldaps:///"'
+    state: present
+  when: ldapsOnly == False
+  notify:
+    - restart slapd
+- name: Update listen ports [ldaps only]
+  lineinfile:
+    path: /etc/sysconfig/slapd
+    regexp: 'SLAPD_URLS=".+'
+    line: 'SLAPD_URLS="ldapi:/// ldaps:///"'
+    state: present
+  when: ldapsOnly == True
+  notify:
+    - restart slapd

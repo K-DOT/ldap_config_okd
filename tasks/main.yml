@@ -1,0 +1,100 @@
+---
+- name: Install EPEL
+  package:
+    name: 'epel-release'
+    state: latest
+- name: Install required packages
+  package:
+    name: '{{ packages }}'
+    state: latest
+  vars:
+    packages:
+      - 'openldap'
+      - 'compat-openldap'
+      - 'openldap-clients'
+      - 'openldap-servers'
+      - 'openldap-servers-sql'
+      - 'openldap-devel'
+      - 'gcc'
+      - 'python-pip'
+      - 'python-devel'
+- name: install required python packages
+  pip:
+    name: '{{ packages }}'
+  vars:
+    packages:
+      - python-ldap
+      - pyOpenSSL
+- name: Start and enable service
+  systemd:
+    name: slapd
+    state: started
+    enabled: yes
+- name: Create password
+  shell:
+    cmd: '/sbin/slappasswd -s {{ LDAPassword }} -h{SSHA}'
+  register: password_hash
+  failed_when: password_hash.rc != 0
+  no_log: true
+- debug:
+    msg: olcDatabase={2}hdb,cn=config
+- name: Update LDAP configuration
+  ldap_attr:
+    dn: olcDatabase={2}hdb,cn=config
+    name: '{{ item.name_ }}'
+    values: '{{ item.values_ }}'
+    state: exact
+  loop:
+    - name_: olcSuffix
+      values_: '{{ DN }}'
+    - name_: olcRootDN
+      values_: '{{ admin_CN }},{{ DN }}'
+    - name_: olcRootPW
+      values_:  '{{ password_hash.stdout }}'
+- name: Restrict the monitor access only to ldap root user
+  ldap_attr:
+    dn: olcDatabase={1}monitor,cn=config
+    name: olcAccess
+    values:
+      - >-
+        {0}to * by dn.base="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth"
+        read by dn.base="{{ admin_CN }},{{ DN }}"
+        read by * none
+    state: exact
+- name: Create database configuration
+  copy:
+    src: /usr/share/openldap-servers/DB_CONFIG.example
+    dest:  /var/lib/ldap/DB_CONFIG
+    owner: ldap
+    group: ldap
+    remote_src: yes
+- name: Add LDAP schemas
+  shell:
+    cmd: 'ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/{{ item }}.ldif'
+  loop:
+    - 'cosine'
+    - 'nis'
+    - 'inetorgperson'
+  register: result
+  failed_when: "'No such file or directory' in result.stderr"
+- name: Add LDAP Entries
+  ldap_entry:
+    dn: '{{ item.dn_ }}'
+    objectClass: '{{ item.objectClass_ }}'
+    bind_dn: '{{ admin_CN }},{{ DN }}'
+    bind_pw: '{{ LDAPassword }}'
+  loop:
+    - dn_: '{{ DN }}'
+      objectClass_:
+        - top
+        - domain
+    - dn_: '{{ admin_CN }},{{ DN }}'
+      objectClass_:  organizationalRole
+    - dn_: 'ou=Users,{{ DN }}'
+      objectClass_:  organizationalUnit
+    - dn_: 'ou=Groups,{{ DN }}'
+      objectClass_:  organizationalUnit
+- include_tasks:  ldaps_config.yml
+  when: enableLDAPS
+- include_tasks:  webui_config.yml
+  when: installWebUI

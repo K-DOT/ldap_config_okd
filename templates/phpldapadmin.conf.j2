@@ -1,0 +1,25 @@
+<VirtualHost *:80>
+    ServerName {{ inventory_hostname }}
+    ServerAlias *
+    # Redirect http to https
+    RewriteEngine On
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}$1 [R=301,L]
+    Alias /phpldapadmin /usr/share/phpldapadmin/htdocs
+    Alias /ldapadmin /usr/share/phpldapadmin/htdocs
+</VirtualHost>
+
+<Directory /usr/share/phpldapadmin/htdocs>
+    AllowOverride None
+    Require all granted
+</Directory>
+
+# HTTPS section
+<VirtualHost *:443>
+    ServerName {{ inventory_hostname }}
+    ServerAlias *
+    Alias /phpldapadmin /usr/share/phpldapadmin/htdocs
+    Alias /ldapadmin /usr/share/phpldapadmin/htdocs
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/certs/phpldapadmin.crt
+    SSLCertificateKeyFile /etc/ssl/private/phpldapadmin.key
+</VirtualHost>
