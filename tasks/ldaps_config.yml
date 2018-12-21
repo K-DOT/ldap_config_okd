@@ -28,7 +28,7 @@
     name: '{{ item.key }}'
     values: '{{ item.value }}'
     state: exact
-  loop:
+  with_dict:
     olcTLSCertificateKeyFile: /etc/openldap/certs/ldap.key
     olcTLSCertificateFile: /etc/openldap/certs/ldap.crt
 - name: Update listen ports
