@@ -44,7 +44,7 @@
     name: '{{ item.key }}'
     values: '{{ item.value }}'
     state: exact
-  loop:
+  with_dict:
     olcSuffix: '{{ DN }}'
     olcRootDN : '{{ admin_CN }},{{ DN }}'
     olcRootPW: '{{ password_hash.stdout }}'
