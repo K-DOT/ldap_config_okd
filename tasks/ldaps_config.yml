@@ -29,8 +29,8 @@
     values: '{{ item.value }}'
     state: exact
   loop:
-    - olcTLSCertificateKeyFile: /etc/openldap/certs/ldap.key
-    - olcTLSCertificateFile: /etc/openldap/certs/ldap.crt
+    olcTLSCertificateKeyFile: /etc/openldap/certs/ldap.key
+    olcTLSCertificateFile: /etc/openldap/certs/ldap.crt
 - name: Update listen ports
   lineinfile:
     path: /etc/sysconfig/slapd
