@@ -41,16 +41,13 @@
 - name: Update LDAP configuration
   ldap_attr:
     dn: olcDatabase={2}hdb,cn=config
-    name: '{{ item.name_ }}'
-    values: '{{ item.values_ }}'
+    name: '{{ item.key }}'
+    values: '{{ item.value }}'
     state: exact
   loop:
-    - name_: olcSuffix
-      values_: '{{ DN }}'
-    - name_: olcRootDN
-      values_: '{{ admin_CN }},{{ DN }}'
-    - name_: olcRootPW
-      values_:  '{{ password_hash.stdout }}'
+    - olcSuffix: '{{ DN }}'
+    - olcRootDN : '{{ admin_CN }},{{ DN }}'
+    - olcRootPW: '{{ password_hash.stdout }}'
 - name: Restrict the monitor access only to ldap root user
   ldap_attr:
     dn: olcDatabase={1}monitor,cn=config

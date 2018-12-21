@@ -25,14 +25,12 @@
 - name: Update LDAP configuration
   ldap_attr:
     dn: cn=config
-    name: '{{ item.name_ }}'
-    values: '{{ item.values_ }}'
+    name: '{{ item.key }}'
+    values: '{{ item.value }}'
     state: exact
   loop:
-    - name_: olcTLSCertificateKeyFile
-      values_: /etc/openldap/certs/ldap.key
-    - name_: olcTLSCertificateFile
-      values_: /etc/openldap/certs/ldap.crt  
+    - olcTLSCertificateKeyFile: /etc/openldap/certs/ldap.key
+    - olcTLSCertificateFile: /etc/openldap/certs/ldap.crt
 - name: Update listen ports
   lineinfile:
     path: /etc/sysconfig/slapd
